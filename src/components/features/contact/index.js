@@ -16,9 +16,11 @@ export default class ContactList extends PureComponent {
 
   componentWillMount() {
     this.loadContacts();
-    window.addEventListener("scroll", e => {
-      this.handleScroll(e);
-    });
+    window.addEventListener("scroll", this.handleScroll);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("scroll", this.handleScroll);
   }
 
   handleScroll = e => {
