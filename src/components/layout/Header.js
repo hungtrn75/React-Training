@@ -7,6 +7,7 @@ export default () => {
       <div className="demo-nav">
         <Link to="/">Infinite Scroll</Link>
         <Link to="/pagination">Pagination</Link>
+        <Link to="/upload">Upload</Link>
       </div>
     </div>
   );
