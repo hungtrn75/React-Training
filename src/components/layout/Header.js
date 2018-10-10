@@ -3,10 +3,11 @@ import { Link } from "react-router-dom";
 
 export default () => {
   return (
-    <nav className="header">
-      <ul className="nav">
+    <div className="demo">
+      <div className="demo-nav">
         <Link to="/">Infinite Scroll</Link>
-      </ul>
-    </nav>
+        <Link to="/pagination">Pagination</Link>
+      </div>
+    </div>
   );
 };
