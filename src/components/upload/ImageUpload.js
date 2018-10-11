@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Upload, Button, Icon, Row, Col, Spin } from "antd";
+import { Upload, Button, Icon, Row, Col, Spin, Card, Progress } from "antd";
 import firebase from "firebase/app";
 import "firebase/storage";
 import "firebase/database";
@@ -15,7 +15,9 @@ const config = {
 };
 firebase.initializeApp(config);
 
-const writeInfoToDB = (name, url) => {
+const writeInfoToDB = (file, url) => {
+  console.log(file);
+  const patr = new RegExp("image");
   const id =
     Math.random()
       .toString(36)
@@ -28,8 +30,9 @@ const writeInfoToDB = (name, url) => {
     .ref("upload/" + id)
     .set({
       id,
-      name,
-      url
+      name: file.name,
+      url,
+      type: patr.test(file.type) ? "image" : "other"
     });
 };
 
@@ -39,7 +42,8 @@ export default class ImageUpload extends Component {
     this.state = {
       uploadFiles: [],
       isUploading: false,
-      fileList: []
+      fileList: [],
+      percent: 0
     };
   }
 
@@ -62,7 +66,7 @@ export default class ImageUpload extends Component {
         snapshot => {
           var progress =
             (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log(`Uploaded ${progress}%`);
+          this.setState({ percent: progress });
         },
         err => {
           openNotificationWithIcon("error", null);
@@ -72,7 +76,7 @@ export default class ImageUpload extends Component {
           uploadTask.snapshot.ref.getDownloadURL().then(
             function(downloadURL) {
               openNotificationWithIcon("success", downloadURL);
-              writeInfoToDB(file.name, downloadURL);
+              writeInfoToDB(file, downloadURL);
               this.setState(({ fileList }) => {
                 const index = fileList.indexOf(file);
                 const newFileList = fileList.slice();
@@ -88,13 +92,38 @@ export default class ImageUpload extends Component {
       );
     });
   };
+
+  onDeleteFile = (name, id) => {
+    // Create a reference to the file to delete
+    const desertRef = firebase
+      .storage()
+      .ref()
+      .child(name);
+
+    // Delete the file
+    desertRef
+      .delete()
+      .then(function() {
+        // File deleted successfully
+        alert(`delete file ${name} successful`);
+        firebase
+          .database()
+          .ref(`upload/${id}`)
+          .remove();
+      })
+      .catch(function(error) {
+        alert(`delete file ${name} failed`);
+      });
+  };
+
   render() {
-    const { isUploading, uploadFiles } = this.state;
+    const { isUploading, uploadFiles, percent } = this.state;
     const props = {
       multiple: true,
       beforeUpload: file => {
         this.setState(({ fileList }) => ({
-          fileList: [...fileList, file]
+          fileList: [...fileList, file],
+          percent: 0
         }));
         return false;
       },
@@ -126,19 +155,40 @@ export default class ImageUpload extends Component {
         >
           {isUploading ? "Uploading" : "Start upload"}
         </Button>
+        {percent ? <Progress strokeLinecap="square" percent={percent} /> : null}
         {uploadFiles && Object.keys(uploadFiles).length > 0 ? (
           <Row type="flex">
             {Object.values(uploadFiles).map(item => {
               return (
                 <Col span={6} key={item.id} style={{ padding: "20px 10px" }}>
-                  <a href={item.url}>
+                  <Card>
+                    <div style={{ textAlign: "center", fontSize: "30px" }}>
+                      {item.type === "image" ? (
+                        <Icon type="picture" theme="outlined" />
+                      ) : (
+                        <Icon type="file" theme="outlined" />
+                      )}
+                    </div>
                     <span>{item.name}</span>
-                    <Icon
-                      type="download"
-                      theme="outlined"
-                      style={{ marginLeft: "20px" }}
-                    />
-                  </a>
+                    <div
+                      className="file-action"
+                      style={{ textAlign: "right", padding: "5px 5px" }}
+                    >
+                      <a target="_blank" href={item.url} alt="download">
+                        <Icon
+                          type="download"
+                          theme="outlined"
+                          style={{ marginLeft: "20px" }}
+                        />
+                      </a>
+                      <a
+                        onClick={() => this.onDeleteFile(item.name, item.id)}
+                        href="#"
+                      >
+                        <Icon type="delete" theme="outlined" />
+                      </a>
+                    </div>
+                  </Card>
                 </Col>
               );
             })}
